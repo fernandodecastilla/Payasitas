@@ -1,5 +1,5 @@
-/* Service worker · Payasitas (offline-first) */
-const CACHE = 'payasitas-v4';
+/* Service worker · Payasísticas (offline-first) */
+const CACHE = 'payasitas-v5';
 const ASSETS = [
   './',
   './index.html',

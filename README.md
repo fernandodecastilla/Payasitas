@@ -1,4 +1,4 @@
-# 🏐 Payasitas · Control de minutos
+# 🏐 Payasísticas · Control de minutos
 
 Aplicación web táctil (PWA) para **medir los minutos que juega cada jugadora, con qué
 compañeras, y los parciales del marcador** mientras cada una está en pista. Pensada para

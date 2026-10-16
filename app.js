@@ -1,7 +1,7 @@
 'use strict';
 
 /* =====================================================================
-   PAYASITAS · Control de minutos
+   PAYASÍSTICAS · Control de minutos
    App para seguir minutos jugados, compañeras y parciales por quinteto.
    ===================================================================== */
 
@@ -474,7 +474,7 @@ async function exportData() {
   // 1) Compartir/guardar el archivo (ideal en móvil: Archivos, WhatsApp, email, AirDrop)
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Datos Payasitas', text: 'Copia de seguridad de Payasitas (JSON)' });
+      await navigator.share({ files: [file], title: 'Datos Payasísticas', text: 'Copia de seguridad de Payasísticas (JSON)' });
       toast('Datos exportados ✓');
       return;
     }
