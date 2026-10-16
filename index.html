@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b0912" />
+  <meta name="description" content="Control de minutos y parciales por jugadora para el equipo Payasitas." />
+  <title>Payasitas · Control de minutos</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-crest" src="crest.svg" alt="Escudo C.D. Payasos Crouss" />
+        <span class="brand-text">PAYASITAS<small>C.D. Payasos Crouss · control de minutos</small></span>
+      </div>
+      <div class="match-actions">
+        <button id="btnReset" class="btn btn-ghost" type="button">
+          <span class="ico">⟳</span> Iniciar partido
+        </button>
+        <button id="btnEnd" class="btn btn-danger" type="button">
+          <span class="ico">⏹</span> Finalizar
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- ================= PARTIDO ================= -->
+      <section id="tab-partido" class="tab active">
+        <div class="board">
+
+          <div class="zone zone-court" id="courtZone">
+            <h2 class="zone-title">En pista <span class="count" id="courtCount">5</span></h2>
+            <div class="chips chips-court" id="courtChips"></div>
+            <p class="zone-hint">Toca una ficha y luego otra para intercambiar, o arrástrala.</p>
+          </div>
+
+          <div class="scoreboard">
+            <div class="sb-side sb-home">
+              <div class="sb-label">LOCAL <small>a favor</small></div>
+              <div class="sb-score" id="homeScore">0</div>
+              <div class="sb-goal-btns">
+                <button class="goal-btn minus" type="button" data-team="home" data-delta="-1" aria-label="Restar gol local">−</button>
+                <button class="goal-btn plus" type="button" data-team="home" data-delta="1" aria-label="Sumar gol local">+</button>
+              </div>
+            </div>
+
+            <div class="sb-center">
+              <div class="sb-timer" id="timer">00:00</div>
+              <button id="btnClock" class="clock-btn" type="button">Iniciar</button>
+              <div class="sb-status" id="status">Listo</div>
+            </div>
+
+            <div class="sb-side sb-away">
+              <div class="sb-label">VISITANTE <small>en contra</small></div>
+              <div class="sb-score" id="awayScore">0</div>
+              <div class="sb-goal-btns">
+                <button class="goal-btn minus" type="button" data-team="away" data-delta="-1" aria-label="Restar gol visitante">−</button>
+                <button class="goal-btn plus" type="button" data-team="away" data-delta="1" aria-label="Sumar gol visitante">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="zone zone-bench" id="benchZone">
+            <h2 class="zone-title">Banquillo <span class="count" id="benchCount">13</span></h2>
+            <div class="chips chips-bench" id="benchChips"></div>
+            <p class="zone-hint">Siempre 5 jugadoras en pista: al mover una, entra otra.</p>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= ANÁLISIS ================= -->
+      <section id="tab-analisis" class="tab">
+        <div class="panel">
+          <div id="analysisBanner" class="banner" hidden></div>
+
+          <h2 class="panel-title">Filtro de jugadoras</h2>
+          <p class="panel-sub">
+            Toca para alternar: <span class="tag tag-inc">incluir</span> (debe estar en pista),
+            <span class="tag tag-exc">excluir</span> (no debe estar), gris = indiferente.
+          </p>
+          <div class="filter-grid" id="filterGrid"></div>
+          <div class="filter-controls">
+            <button id="btnClearFilter" class="btn btn-ghost small" type="button">Limpiar filtro</button>
+            <span class="filter-summary" id="filterSummary"></span>
+          </div>
+
+          <div class="result-card" id="resultCard"></div>
+
+          <h2 class="panel-title">Resumen por jugadora</h2>
+          <p class="panel-sub">Minutos en pista y marcador parcial mientras cada jugadora estaba jugando.</p>
+          <div class="table-wrap">
+            <table class="stats-table" id="playerTable">
+              <thead>
+                <tr>
+                  <th class="l">Jugadora</th>
+                  <th>Tiempo</th>
+                  <th>A favor</th>
+                  <th>En contra</th>
+                  <th>+/−</th>
+                </tr>
+              </thead>
+              <tbody id="playerTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= HISTORIAL ================= -->
+      <section id="tab-historial" class="tab">
+        <div class="panel">
+          <div class="history-head">
+            <h2 class="panel-title">Historial de partidos</h2>
+            <div class="history-tools">
+              <button id="btnExport" class="btn btn-ghost small" type="button">Exportar</button>
+              <button id="btnImport" class="btn btn-ghost small" type="button">Importar</button>
+              <input id="importFile" type="file" accept="application/json" hidden />
+            </div>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabbar">
+      <button class="active" data-tab="partido" type="button"><span class="tb-ico">🏐</span>Partido</button>
+      <button data-tab="analisis" type="button"><span class="tb-ico">📊</span>Análisis</button>
+      <button data-tab="historial" type="button"><span class="tb-ico">🗂️</span>Historial</button>
+    </nav>
+  </div>
+
+  <!-- Modal de confirmación -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-box">
+      <h3 id="modalTitle"></h3>
+      <p id="modalMsg"></p>
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn btn-ghost" type="button">Cancelar</button>
+        <button id="modalOk" class="btn btn-primary" type="button">Sí</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

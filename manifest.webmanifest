@@ -1,0 +1,20 @@
+{
+  "name": "Payasitas · Control de minutos",
+  "short_name": "Payasitas",
+  "description": "Control de minutos jugados, compañeras en pista y parciales del marcador por jugadora. C.D. Payasos Crouss.",
+  "lang": "es",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0912",
+  "theme_color": "#0b0912",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
