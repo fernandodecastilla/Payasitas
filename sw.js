@@ -1,5 +1,5 @@
 /* Service worker · Payasitas (offline-first) */
-const CACHE = 'payasitas-v2';
+const CACHE = 'payasitas-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,8 @@ const ASSETS = [
   './app.js',
   './manifest.webmanifest',
   './crest.svg',
-  './icon.svg'
+  './icon.svg',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (e) => {
