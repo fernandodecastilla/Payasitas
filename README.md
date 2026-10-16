@@ -52,10 +52,10 @@ Es una PWA: se instala como una app normal, sin tienda.
 4. Se abre a pantalla completa, con su icono, y **funciona sin conexión**. Los datos se guardan en el dispositivo.
 
 ### Publicar gratis con GitHub Pages
-El repositorio incluye un workflow (`.github/workflows/deploy-pages.yml`) que **activa y
-despliega Pages automáticamente** al subir cambios a la rama. La web queda en
-`https://<usuario>.github.io/Payasitas/`, lista para instalar.
-(Si el repositorio es privado, Pages requiere un plan de pago: hazlo público o usa Netlify/Vercel.)
+En el repositorio: **Settings → Pages → Build and deployment → Source: "Deploy from a branch"**,
+elige la rama `claude/volleyball-stats-app-i4zu3q` y carpeta `/ (root)`, y **Save**.
+En ~1 minuto la web queda publicada en `https://fernandodecastilla.github.io/Payasitas/`,
+lista para instalar. GitHub la reconstruye sola en cada push (repositorio público = gratis).
 
 ### Probar en local
 ```bash
@@ -79,8 +79,7 @@ app.js                   Lógica: cronómetro, tramos por quinteto, goles, filtr
 manifest.webmanifest     Metadatos PWA (instalable)
 sw.js                    Service worker (funciona sin conexión)
 crest.svg                Escudo del club (cabecera y marca de agua)
-icon.svg / icon-maskable Iconos de la app (escudo sobre fondo violeta)
-.github/workflows/       Despliegue automático a GitHub Pages
+icon.svg                 Icono de la app (escudo sobre fondo violeta)
 ```
 
 ## ⚙️ Cómo funciona por dentro
