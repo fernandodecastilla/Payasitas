@@ -1,5 +1,5 @@
 /* Service worker · Payasitas (offline-first) */
-const CACHE = 'payasitas-v3';
+const CACHE = 'payasitas-v4';
 const ASSETS = [
   './',
   './index.html',

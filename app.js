@@ -465,16 +465,41 @@ function getMatches() { try { return JSON.parse(localStorage.getItem(LS_MATCHES)
 function saveMatch(m) { const arr = getMatches(); arr.unshift(m); try { localStorage.setItem(LS_MATCHES, JSON.stringify(arr)); } catch (_) {} }
 function deleteMatch(id) { try { localStorage.setItem(LS_MATCHES, JSON.stringify(getMatches().filter(m => m.id !== id))); } catch (_) {} }
 
-function exportData() {
+async function exportData() {
   const data = { app: 'payasitas', version: 1, exportedAt: Date.now(), matches: getMatches(), current: state };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'payasitas-datos-' + new Date().toISOString().slice(0, 10) + '.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-  toast('Datos exportados');
+  const json = JSON.stringify(data, null, 2);
+  const filename = 'payasitas-datos-' + new Date().toISOString().slice(0, 10) + '.json';
+  const file = new File([json], filename, { type: 'application/json' });
+
+  // 1) Compartir/guardar el archivo (ideal en móvil: Archivos, WhatsApp, email, AirDrop)
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Datos Payasitas', text: 'Copia de seguridad de Payasitas (JSON)' });
+      toast('Datos exportados ✓');
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // cancelado por el usuario
+  }
+
+  // 2) Descarga clásica (escritorio y Android Chrome)
+  try {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('Datos exportados ✓');
+    return;
+  } catch (e) { /* sigue al plan C */ }
+
+  // 3) Último recurso: copiar el JSON al portapapeles
+  try {
+    await navigator.clipboard.writeText(json);
+    toast('JSON copiado al portapapeles (pégalo en Notas para guardarlo)');
+  } catch (e) {
+    toast('No se pudo exportar en este navegador');
+  }
 }
 function importData(file) {
   const reader = new FileReader();
