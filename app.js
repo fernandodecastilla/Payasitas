@@ -43,7 +43,8 @@ let state = loadCurrent() || defaultState();
 let selected = null;           // ficha seleccionada (para intercambiar tocando)
 let currentTab = 'partido';
 let filter = {};               // id -> 'inc' | 'exc'
-let analysisDataset = 'live';  // 'live' o id de partido del historial
+let analysisDataset = 'live';  // 'live' o array de ids de partidos del historial
+let historySelection = new Set(); // ids de partidos marcados en el historial
 
 /* ---------------------- Tiempo ---------------------- */
 function nowElapsed() {
@@ -306,9 +307,23 @@ function datasetFor() {
   if (analysisDataset === 'live') {
     return { segments: allSegments(), goals: state.goals, totalMs: nowElapsed(), live: true };
   }
-  const m = getMatches().find(x => x.id === analysisDataset);
-  if (!m) { analysisDataset = 'live'; return datasetFor(); }
-  return { segments: m.segments, goals: m.goals, totalMs: m.totalMs, match: m, players: m.players };
+  // analysisDataset es un array de ids de partidos (1 o más)
+  const ids = Array.isArray(analysisDataset) ? analysisDataset : [analysisDataset];
+  const all = getMatches();
+  const sel = ids.map(id => all.find(m => m.id === id)).filter(Boolean);
+  if (!sel.length) { analysisDataset = 'live'; return datasetFor(); }
+  const segments = [], goals = [];
+  let totalMs = 0, home = 0, away = 0;
+  for (const m of sel) {
+    for (const s of m.segments) segments.push(s);
+    for (const g of m.goals) goals.push(g);
+    totalMs += m.totalMs; home += m.home; away += m.away;
+  }
+  return {
+    segments, goals, totalMs, home, away,
+    matches: sel,
+    players: (sel[0] && sel[0].players) || PLAYERS
+  };
 }
 
 /* ---------------------- Render análisis ---------------------- */
@@ -329,11 +344,18 @@ function renderAnalysis() {
   const ds = datasetFor();
   const names = ds.players || PLAYERS;
 
-  // Banner si estamos viendo un partido del historial
+  // Banner si estamos viendo el historial (uno o varios partidos)
   const banner = $('#analysisBanner');
-  if (analysisDataset !== 'live' && ds.match) {
+  if (analysisDataset !== 'live' && ds.matches && ds.matches.length) {
     banner.hidden = false;
-    banner.innerHTML = `<span>Viendo partido del <b>${fmtDate(ds.match.date)}</b> · ${ds.match.home}-${ds.match.away}</span>`;
+    const n = ds.matches.length;
+    let txt;
+    if (n === 1) {
+      txt = `Viendo partido del <b>${fmtDate(ds.matches[0].date)}</b> · ${ds.home}-${ds.away}`;
+    } else {
+      txt = `Viendo <b>${n} partidos</b> juntos · marcador total ${ds.home}-${ds.away}`;
+    }
+    banner.innerHTML = `<span>${txt}</span>`;
     const back = document.createElement('button');
     back.className = 'btn btn-ghost small';
     back.textContent = 'Volver al partido actual';
@@ -367,8 +389,9 @@ function renderAnalysis() {
   const pct = total > 0 ? Math.round((r.ms / total) * 100) : 0;
   const diff = r.gf - r.ga;
 
+  const nMatches = ds.matches ? ds.matches.length : 0;
   let title;
-  if (!inc.length && !exc.length) title = 'Partido completo';
+  if (!inc.length && !exc.length) title = nMatches > 1 ? `Resumen de <b>${nMatches} partidos</b>` : 'Partido completo';
   else if (inc.length >= 2 && !exc.length) title = `Minutos de <b>${inc.map(i => names[i]).join(' + ')}</b> juntas en pista`;
   else if (inc.length === 1 && !exc.length) title = `Minutos de <b>${names[inc[0]]}</b> en pista`;
   else {
@@ -410,6 +433,16 @@ function renderAnalysis() {
 }
 
 /* ---------------------- Historial ---------------------- */
+function viewSelectedMatches() {
+  const matches = getMatches();
+  // conservar el orden de la lista (más recientes primero)
+  const ids = matches.filter(m => historySelection.has(m.id)).map(m => m.id);
+  if (!ids.length) { toast('Selecciona al menos un partido'); return; }
+  analysisDataset = ids;
+  filter = {};
+  switchTab('analisis');
+}
+
 function renderHistory() {
   const list = $('#historyList');
   const matches = getMatches();
@@ -418,33 +451,83 @@ function renderHistory() {
     list.innerHTML = '<div class="empty">Aún no hay partidos guardados.<br>Finaliza un partido para guardarlo aquí.</div>';
     return;
   }
+  // limpiar de la selección ids que ya no existan
+  const existing = new Set(matches.map(m => m.id));
+  historySelection.forEach(id => { if (!existing.has(id)) historySelection.delete(id); });
+
+  const n = historySelection.size;
+
+  // Barra de selección
+  const bar = document.createElement('div');
+  bar.className = 'history-select-bar';
+  bar.innerHTML = `<span class="sel-count">${n} seleccionado${n === 1 ? '' : 's'}</span>`;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'btn btn-ghost small';
+  allBtn.textContent = 'Todos';
+  allBtn.onclick = () => { matches.forEach(m => historySelection.add(m.id)); renderHistory(); };
+
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'btn btn-ghost small';
+  noneBtn.textContent = 'Ninguno';
+  noneBtn.onclick = () => { historySelection.clear(); renderHistory(); };
+
+  const viewBtn = document.createElement('button');
+  viewBtn.className = 'btn btn-primary small';
+  viewBtn.textContent = n > 1 ? `Ver análisis (${n})` : 'Ver análisis';
+  viewBtn.disabled = n === 0;
+  viewBtn.onclick = viewSelectedMatches;
+
+  bar.appendChild(allBtn);
+  bar.appendChild(noneBtn);
+  bar.appendChild(viewBtn);
+  list.appendChild(bar);
+
+  if (n >= 2) {
+    const hint = document.createElement('p');
+    hint.className = 'history-hint';
+    hint.textContent = 'Se analizarán los ' + n + ' partidos juntos (minutos y marcador sumados).';
+    list.appendChild(hint);
+  }
+
   matches.forEach(m => {
+    const selectedCls = historySelection.has(m.id) ? ' selected' : '';
     const card = document.createElement('div');
-    card.className = 'history-card';
+    card.className = 'history-card' + selectedCls;
     card.innerHTML = `
+      <div class="hc-check" aria-hidden="true"></div>
       <div class="hc-main">
         <div class="hc-score">${m.home} <span style="color:var(--muted)">-</span> ${m.away}</div>
         <div class="hc-meta">${fmtDate(m.date)} · duración ${mmss(m.totalMs)}</div>
       </div>
       <div class="hc-actions"></div>`;
-    const actions = card.querySelector('.hc-actions');
 
-    const view = document.createElement('button');
-    view.className = 'btn btn-ghost small';
-    view.textContent = 'Ver análisis';
-    view.onclick = () => { analysisDataset = m.id; filter = {}; switchTab('analisis'); };
+    // Tocar la tarjeta alterna la selección
+    card.onclick = () => {
+      if (historySelection.has(m.id)) historySelection.delete(m.id);
+      else historySelection.add(m.id);
+      renderHistory();
+    };
+
+    const actions = card.querySelector('.hc-actions');
 
     const del = document.createElement('button');
     del.className = 'btn btn-danger small';
     del.textContent = 'Borrar';
-    del.onclick = () => confirmModal('¿Borrar este partido?', 'Esta acción no se puede deshacer.', () => {
-      deleteMatch(m.id);
-      if (analysisDataset === m.id) analysisDataset = 'live';
-      renderHistory();
-      toast('Partido borrado');
-    });
+    del.onclick = (e) => {
+      e.stopPropagation();
+      confirmModal('¿Borrar este partido?', 'Esta acción no se puede deshacer.', () => {
+        deleteMatch(m.id);
+        historySelection.delete(m.id);
+        if (Array.isArray(analysisDataset)) {
+          analysisDataset = analysisDataset.filter(id => id !== m.id);
+          if (!analysisDataset.length) analysisDataset = 'live';
+        }
+        renderHistory();
+        toast('Partido borrado');
+      });
+    };
 
-    actions.appendChild(view);
     actions.appendChild(del);
     list.appendChild(card);
   });
